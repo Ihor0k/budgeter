@@ -10,77 +10,70 @@ import io.ktor.server.plugins.dataconversion.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.transactions.transaction
+import ua.ihor0k.budgeter.db.Account
+import ua.ihor0k.budgeter.db.ExpenseCategory
+import ua.ihor0k.budgeter.db.IncomeCategory
+import ua.ihor0k.budgeter.db.User
 import java.time.YearMonth
 
 fun Application.module() {
-//    Database.connect("jdbc:h2:mem:test", user = "root")
     Database.connect(
         url = environment.config.property("postgres.url").getString(),
         user = environment.config.property("postgres.user").getString(),
         password = environment.config.property("postgres.password").getString(),
     )
 //    transaction {
-//        SchemaUtils.drop(UserTable, AccountTable)
-//        SchemaUtils.create(Users, Cities)
-//        val kyiv = City.new {
-//            name = "Kyiv"
-//        }
-//        val netishyn = City.new {
-//            name = "Netishyn"
-//        }
-//        User.new {
-//            name = "ihor"
-//            age = 26
-//            city = kyiv
-//        }
-//        User.new {
-//            name = "Kolya"
-//            age = 26
-//            city = kyiv
-//        }
-//        User.new {
-//            name = "nastya"
-//            age = 31
-//            city = netishyn
-//        }
-//        SchemaUtils.create(UserTable, AccountTable)
-//        val ihor = UserEntity.new {
+//        val ihor = User.new {
 //            name = "Ihor"
 //        }
-//        val nastya = UserEntity.new {
+//        val nastya = User.new {
 //            name = "Nastya"
 //        }
-//        AccountEntity.new {
-//            name = "account1"
+//        Account.new {
+//            name = "Nordea"
 //            user = ihor
 //        }
-//        AccountEntity.new {
-//            name = "account2"
+//        Account.new {
+//            name = "Monobanm"
 //            user = ihor
 //        }
-//        AccountEntity.new {
-//            name = "account3"
+//        Account.new {
+//            name = "Nordea"
 //            user = nastya
 //        }
-//        AccountEntity.new {
-//            name = "account4"
+//        Account.new {
+//            name = "S-Panki"
 //            user = nastya
 //        }
-//        commit()
-//        transaction {
-//            println("!!! Created !!!")
-//
-//            println("!!! GET CITIES !!!")
-//            val cities = City.all().with(City::users).toList()
-//            val citiesMap = cities.associate { city -> city.name to city.users.map { user -> user.name } }
-//            println(Json.encodeToString(citiesMap))
-//
-//            println("!!! GET USERS !!!")
-//            val users = UserEntity.all().with(UserEntity::accounts).toList()
-//            val usersMap = users.associate { user -> user.name to user.accounts.map { account -> account.name } }
-//            println(Json.encodeToString(usersMap))
+//        ExpenseCategory.new {
+//            name = "Food"
+//            requiresDescription = false
 //        }
-//        SchemaUtils.drop(Cities, Users)
+//        ExpenseCategory.new {
+//            name = "Household needs"
+//            requiresDescription = false
+//        }
+//        ExpenseCategory.new {
+//            name = "Travel"
+//            requiresDescription = true
+//        }
+//        ExpenseCategory.new {
+//            name = "Other"
+//            requiresDescription = true
+//        }
+//        IncomeCategory.new {
+//            name = "Salary"
+//            requiresDescription = false
+//        }
+//        IncomeCategory.new {
+//            name = "S-Pankki"
+//            requiresDescription = false
+//        }
+//        IncomeCategory.new {
+//            name = "Other"
+//            requiresDescription = true
+//        }
 //    }
     install(CORS) {
         allowHost("localhost:5173")

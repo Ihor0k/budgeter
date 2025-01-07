@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, toRaw } from 'vue'
 import { Add, LockClosed, LockOpenOutline, Remove } from '@vicons/ionicons5'
 import { Big } from 'big.js'
 import type { ExpenseCategory, ExpenseTransaction, User } from '@/types/types.ts'
@@ -44,8 +44,6 @@ function toLocalDate(timestamp: number): string {
   const date = new Date(timestamp)
   return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().substring(0, 10)
 }
-
-const saveButtonText = computed(() => state.id ? 'Update' : 'Save')
 
 const accountOptions = computed(() => props.users.flatMap(user => user.accounts.map(account => ({
   label: user.name + ' - ' + account.name,
@@ -98,10 +96,6 @@ function checkCategory(detail: { categoryId: number | null; description: string 
 }
 
 function save() {
-  console.log('state', state)
-  console.log('state.details[0]', state.details[0])
-
-
   const totalDetailsAmount = state.details.reduce((sum, d) => sum.add(new Big(d.amount ?? 0)), new Big(0))
   if (!totalDetailsAmount.eq(new Big(state.amount ?? 0))) {
     alert('The total amount must match the sum of the details.')
@@ -109,7 +103,18 @@ function save() {
   }
   state.details.forEach(checkCategory)
 
-  emit('save', {})  // TODO
+  const expenseTransactionRequest = { // TODO: use ExpenseTransaction type
+      accountId: state.accountId,
+      date: toLocalDate(state.date),
+      amount: state.amount.toString(),
+      details: state.details.map(detail => ({
+        categoryId: detail.categoryId,
+        amount: detail.amount.toString(),
+        description: detail.description
+      }))
+  }
+
+  emit('save', expenseTransactionRequest)
 }
 
 function onLockClick(index: number) {
@@ -121,7 +126,7 @@ function onLockClick(index: number) {
   }
 }
 
-function selectInput(e: Event) {
+function selectInput(e: Event) {  // TODO: should it be moved inside FormulaInput.vue?
   if (e.target instanceof HTMLInputElement) {
     e.target.select()
   }
@@ -131,133 +136,123 @@ function selectInput(e: Event) {
 
 <template>
   <n-card>
-    <n-h2>Add Expense Transaction</n-h2>
+    <n-h2>{{expenseTransaction ? 'Update' : 'Add'}} Expense Transaction</n-h2>
 
     <n-form :model="state">
-      <n-flex>
-        <n-form-item class="flex-item" label="Date:" for="date" path="date">
-          <n-date-picker format="dd-MMM" v-model:value="state.date" type="date" />
-        </n-form-item>
+      <n-flex vertical>
+        <n-flex>
+          <n-form-item label="Date" for="date" path="date">
+            <n-date-picker format="dd-MMM" v-model:value="state.date" type="date" />
+          </n-form-item>
 
-        <n-form-item class="flex-item" label="Account:" path="accountId">
-          <n-select class="account"
-                    v-model:value="state.accountId"
-                    placeholder="Select an account"
-                    :options="accountOptions"
-                    filterable
-          />
-        </n-form-item>
+          <n-form-item label="Account" path="accountId">
+            <n-select class="account"
+                      v-model:value="state.accountId"
+                      placeholder="Select an account"
+                      :options="accountOptions"
+                      filterable
+            />
+          </n-form-item>
 
-        <n-form-item class="flex-item" label="Total Amount:" for="amount" path="amount">
-          <FormulaInput
-            v-model:value="state.amount"
-            :disabled="false"
-          />
-          <!--          <n-input-number :precision="2" v-model:value="state.amount" />-->
-        </n-form-item>
-      </n-flex>
+          <n-form-item label="Total Amount" for="amount" path="amount">
+            <FormulaInput
+              v-model:value="state.amount"
+              :disabled="false"
+            />
+            <!--          <n-input-number :precision="2" v-model:value="state.amount" />-->
+          </n-form-item>
+        </n-flex>
 
-      <n-flex>
-        <n-table>
-          <thead>
-          <tr>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Description</th>
-            <th></th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="(detail, index) in state.details" :key="index">
-            <td>
-              <n-form-item path="category" :show-label="false" :show-feedback="false">
-                <n-select v-model:value="detail.categoryId"
-                          :options="categoryOptions"
-                          filterable
-                          placeholder="Select a category">
-                  <template v-slot:empty></template>
-                </n-select>
-              </n-form-item>
-            </td>
-            <td>
-              <n-form-item path="detailAmount" :show-label="false" :show-feedback="false">
-                <FormulaInput
-                  :disabled="detailAmountInputDisabled(index)"
-                  v-model:value="detail.amount"
-                  @click="selectInput"
-                />
+        <n-flex>
+          <n-table>
+            <thead>
+            <tr>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Description</th>
+              <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(detail, index) in state.details" :key="index">
+              <td>
+                <n-form-item path="category" :show-label="false" :show-feedback="false">
+                  <n-select v-model:value="detail.categoryId"
+                            :options="categoryOptions"
+                            filterable
+                            placeholder="Select a category">
+                  </n-select>
+                </n-form-item>
+              </td>
+              <td>
+                <n-form-item path="detailAmount" :show-label="false" :show-feedback="false">
+                  <FormulaInput
+                    :disabled="detailAmountInputDisabled(index)"
+                    v-model:value="detail.amount"
+                    @click="selectInput"
+                  />
+                  <n-button
+                    circle
+                    quaternary
+                    :type="autoCalculateIndex === index ? 'primary' : 'default'"
+                    @click="onLockClick(index)"
+                  >
+                    <template #icon>
+                      <n-icon>
+                        <LockClosed v-if="autoCalculateIndex === index" />
+                        <LockOpenOutline v-else />
+                      </n-icon>
+                    </template>
+                  </n-button>
+                </n-form-item>
+              </td>
+              <td>
+                <n-form-item path="description" :show-label="false" :show-feedback="false">
+                  <n-input class="description" v-model:value="detail.description"
+                           :required="requiresDescription(detail.categoryId)"
+                           type="textarea"
+                           :autosize="{ minRows: 1 }" />
+                </n-form-item>
+              </td>
+
+              <td>
                 <n-button
                   circle
-                  quaternary
-                  :type="autoCalculateIndex === index ? 'primary' : 'default'"
-                  @click="onLockClick(index)"
+                  @click="removeDetail(index)"
+                  :disabled="state.details.length === 1"
                 >
                   <template #icon>
                     <n-icon>
-                      <LockClosed v-if="autoCalculateIndex === index" />
-                      <LockOpenOutline v-else />
+                      <Remove />
                     </n-icon>
                   </template>
                 </n-button>
-              </n-form-item>
-            </td>
-            <td>
-              <n-form-item path="description" :show-label="false" :show-feedback="false">
-                <n-input class="description" v-model:value="detail.description"
-                         :required="requiresDescription(detail.categoryId)"
-                         type="textarea"
-                         :autosize="{ minRows: 1 }" />
-              </n-form-item>
-            </td>
+              </td>
+            </tr>
+            </tbody>
+          </n-table>
 
-            <td>
-              <n-button
-                circle
-                @click="removeDetail(index)"
-                :disabled="state.details.length === 1"
-              >
-                <template #icon>
-                  <n-icon>
-                    <Remove />
-                  </n-icon>
-                </template>
-              </n-button>
-            </td>
-          </tr>
-          </tbody>
-        </n-table>
-
-        <n-button circle @click="addDetail">
-          <template #icon>
-            <n-icon>
-              <Add />
-            </n-icon>
-          </template>
-        </n-button>
-      </n-flex>
-      <n-flex>
-        <n-button type="primary" @click="addDetail">Add Detail</n-button>
-        <n-button type="success" @click="save">{{ saveButtonText }}</n-button>
+          <n-button circle @click="addDetail">
+            <template #icon>
+              <n-icon>
+                <Add />
+              </n-icon>
+            </template>
+          </n-button>
+        </n-flex>
+        <n-button class="save-button" type="success" @click="save">{{ expenseTransaction ? 'Update' : 'Save' }}</n-button>
       </n-flex>
     </n-form>
   </n-card>
 </template>
 
 <style scoped>
+
+.n-input-number,
+.n-input,
+.n-select,
 .n-date-picker {
   width: 15em;
-}
-
-.n-input-number {
-  width: 15em;
-}
-
-.n-input {
-  width: 15em;
-}
-
-.n-select {
-  width: 15em
 }
 
 .description {
@@ -265,9 +260,16 @@ function selectInput(e: Event) {
   min-width: 15em;
 }
 
+tbody {
+  vertical-align: top;
+}
+
 td {
   padding: 4px;
 }
 
+.save-button {
+  align-self: flex-start;
+}
 
 </style>
