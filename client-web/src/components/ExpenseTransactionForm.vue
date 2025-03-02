@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, toRaw } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { Add, LockClosed, LockOpenOutline, Remove } from '@vicons/ionicons5'
 import { Big } from 'big.js'
-import type { ExpenseCategory, ExpenseTransaction, User } from '@/types/types.ts'
+import type { ExpenseCategory, ExpenseTransaction, ExpenseTransactionDetail, User } from '@/types/types.ts'
 import { NButton, NCard, NDatePicker, NFlex, NForm, NFormItem, NH2, NIcon, NInput, NSelect, NTable } from 'naive-ui'
-import FormulaInput from '@/assets/FormulaInput.vue'
+import FormulaInput from '@/components/FormulaInput.vue'
 
 const props = defineProps<{
   users: User[],
@@ -14,8 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['save'])
 const state = reactive({
-  id: props.expenseTransaction?.id,
-  accountId: props.expenseTransaction?.accountId,
+  accountId: props.expenseTransaction?.accountId ?? null,
   date: parseLocalDate(props.expenseTransaction?.date) ?? new Date().setHours(0, 0, 0, 0),
   amount: parseNumber(props.expenseTransaction?.amount) ?? 0,
   details: props.expenseTransaction?.details?.map(detail => ({
@@ -29,14 +28,14 @@ const state = reactive({
   }[]
 })
 
-function parseLocalDate(dateString?: string): number | undefined {
-  if (dateString === undefined) return undefined
+function parseLocalDate(dateString?: string): number | null {
+  if (dateString === undefined) return null
   const date = new Date(dateString)
   return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0).getTime()
 }
 
-function parseNumber(value?: string): number | undefined {
-  if (value === undefined) return undefined
+function parseNumber(value?: string): number | null {
+  if (value === undefined) return null
   return Number(value)
 }
 
@@ -80,8 +79,6 @@ function removeDetail(index: number) {
 const autoCalculateIndex = ref<number | null>(0)
 const sumManuallyEnteredAmounts = computed(() => state.details.reduce((sum, d, index) => index === autoCalculateIndex.value ? sum : sum.plus(new Big(d.amount ?? 0)), new Big(0)))
 const autoCalculateAmount = computed(() => new Big(state.amount ?? 0).minus(sumManuallyEnteredAmounts.value))
-// watch(() => state.amount, (amount) => {console.log('state.amount', amount)})
-// watch(autoCalculateAmount, (amount) => {console.log('autoCalculateAmount', amount)})
 
 watch([autoCalculateIndex, autoCalculateAmount, () => state.details], ([index, amount, details]) => {
   if (index !== null && index < details.length) {
@@ -91,7 +88,7 @@ watch([autoCalculateIndex, autoCalculateAmount, () => state.details], ([index, a
 
 function checkCategory(detail: { categoryId: number | null; description: string | null }) {
   if (requiresDescription(detail.categoryId) && !detail.description) {
-    console.log('Missing description')
+    alert('Missing description')
   }
 }
 
@@ -101,20 +98,33 @@ function save() {
     alert('The total amount must match the sum of the details.')
     return
   }
+  if (state.accountId == null) {
+    alert('Account is missing')
+    return
+  }
+  if (state.details.find((detail) => detail.amount == null)) {
+    alert('Details amount is missing')
+    return
+  }
+  if (state.details.find((detail) => detail.categoryId == null)) {
+    alert('Details category is missing')
+    return
+  }
   state.details.forEach(checkCategory)
 
-  const expenseTransactionRequest = { // TODO: use ExpenseTransaction type
-      accountId: state.accountId,
-      date: toLocalDate(state.date),
-      amount: state.amount.toString(),
-      details: state.details.map(detail => ({
-        categoryId: detail.categoryId,
-        amount: detail.amount.toString(),
-        description: detail.description
-      }))
+  const details: ExpenseTransactionDetail[] = state.details.map(detail => ({
+    categoryId: detail.categoryId!,
+    amount: detail.amount!.toString(),
+    description: detail.description
+  }))
+  const expenseTransaction: ExpenseTransaction = {
+    accountId: state.accountId,
+    date: toLocalDate(state.date),
+    amount: state.amount.toString(),
+    details: details
   }
 
-  emit('save', expenseTransactionRequest)
+  emit('save', expenseTransaction)
 }
 
 function onLockClick(index: number) {
@@ -126,17 +136,11 @@ function onLockClick(index: number) {
   }
 }
 
-function selectInput(e: Event) {  // TODO: should it be moved inside FormulaInput.vue?
-  if (e.target instanceof HTMLInputElement) {
-    e.target.select()
-  }
-}
-
 </script>
 
 <template>
   <n-card>
-    <n-h2>{{expenseTransaction ? 'Update' : 'Add'}} Expense Transaction</n-h2>
+    <n-h2>{{ expenseTransaction ? 'Update' : 'Add' }} Expense Transaction</n-h2>
 
     <n-form :model="state">
       <n-flex vertical>
@@ -189,7 +193,6 @@ function selectInput(e: Event) {  // TODO: should it be moved inside FormulaInpu
                   <FormulaInput
                     :disabled="detailAmountInputDisabled(index)"
                     v-model:value="detail.amount"
-                    @click="selectInput"
                   />
                   <n-button
                     circle
@@ -240,7 +243,13 @@ function selectInput(e: Event) {  // TODO: should it be moved inside FormulaInpu
             </template>
           </n-button>
         </n-flex>
-        <n-button class="save-button" type="success" @click="save">{{ expenseTransaction ? 'Update' : 'Save' }}</n-button>
+        <n-button
+          class="save-button"
+          type="success"
+          @click="save"
+        >
+          {{ expenseTransaction ? 'Update' : 'Save' }}
+        </n-button>
       </n-flex>
     </n-form>
   </n-card>

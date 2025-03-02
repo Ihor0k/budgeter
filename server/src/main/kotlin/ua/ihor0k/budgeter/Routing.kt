@@ -120,7 +120,6 @@ fun Application.configureRouting() {
                     val yearMonth by call.queryParameterDelegate<YearMonth>()
                     val incomeTransactions = transactionService.getIncomeTransactions(yearMonth)
                     call.respond(HttpStatusCode.OK, incomeTransactions)
-
                 }
                 post {
                     val incomeTransactionRequest = call.receive<IncomeTransactionRequest>()

@@ -15,7 +15,6 @@ const model = defineModel<number | null>('value', {
   required: true
 })
 
-// State
 const originalString = ref('')
 const isEditing = ref(false)
 
@@ -28,6 +27,7 @@ const sum = computed(() => {
       .map(n => new Big(n))
       .reduce((total, num) => total.add(num), new Big(0))
   } catch {
+    // TODO: show error on UI
     return new Big(0)
   }
 })
@@ -102,6 +102,7 @@ const onFocus = () => {
 
 <template>
   <n-input
+    v-select-on-click
     :value="isEditing ? originalString : inputValue.toString()"
     :disabled="disabled"
     @input="onInput"

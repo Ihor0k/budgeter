@@ -26,7 +26,7 @@ export interface ExpenseTransaction {
 export interface ExpenseTransactionDetail {
   categoryId: number;
   amount: string;
-  description?: string;
+  description: string | null;
 }
 
 export interface IncomeCategory {
@@ -41,5 +41,5 @@ export interface IncomeTransaction {
   date: string;
   categoryId: number;
   amount: string;
-  description?: string;
+  description: string | null;
 }

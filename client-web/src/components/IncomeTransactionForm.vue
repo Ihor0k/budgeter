@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, toRaw } from 'vue'
-import { Add, LockClosed, LockOpenOutline, Remove } from '@vicons/ionicons5'
-import { Big } from 'big.js'
+import { computed, reactive } from 'vue'
 import type { IncomeCategory, IncomeTransaction, User } from '@/types/types.ts'
-import { NButton, NCard, NDatePicker, NFlex, NForm, NFormItem, NH2, NIcon, NInput, NSelect, NTable } from 'naive-ui'
-import FormulaInput from '@/assets/FormulaInput.vue'
+import { NButton, NCard, NDatePicker, NFlex, NForm, NFormItem, NH2, NInput, NSelect } from 'naive-ui'
+import FormulaInput from '@/components/FormulaInput.vue'
 
 const props = defineProps<{
   users: User[],
@@ -14,22 +12,21 @@ const props = defineProps<{
 
 const emit = defineEmits(['save'])
 const state = reactive({
-  id: props.incomeTransaction?.id,
-  accountId: props.incomeTransaction?.accountId,
+  accountId: props.incomeTransaction?.accountId ?? null,
   date: parseLocalDate(props.incomeTransaction?.date) ?? new Date().setHours(0, 0, 0, 0),
-  category: props.incomeTransaction?.categoryId,
+  categoryId: props.incomeTransaction?.categoryId ?? null,
   amount: parseNumber(props.incomeTransaction?.amount) ?? 0,
-  description: props.incomeTransaction?.description
+  description: props.incomeTransaction?.description ?? null
 })
 
-function parseLocalDate(dateString?: string): number | undefined {
-  if (dateString === undefined) return undefined
+function parseLocalDate(dateString?: string): number | null {
+  if (dateString === undefined) return null
   const date = new Date(dateString)
   return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0).getTime()
 }
 
-function parseNumber(value?: string): number | undefined {
-  if (value === undefined) return undefined
+function parseNumber(value?: string): number | null {
+  if (value === undefined) return null
   return Number(value)
 }
 
@@ -53,30 +50,37 @@ function requiresDescription(categoryId: number | null): boolean {
   return props.categories.find((category) => category.id === categoryId)?.requiresDescription ?? false
 }
 
-function checkCategory(detail: { categoryId: number | null; description: string | null }) {
-  if (requiresDescription(detail.categoryId) && !detail.description) {
-    console.log('Missing description')
-  }
-}
 
 function save() {
-  const incomeTransactionRequest = {
-      accountId: state.accountId,
-      date: toLocalDate(state.date),
-      categoryId: state.categoryId,
-      amount: state.amount.toString(),
-      description: state.description
+  if (state.accountId == null) {
+    alert('Account is missing')
+    return
   }
-  console.log('state', incomeTransactionRequest)
+  if (state.categoryId == null) {
+    alert('Category is missing')
+    return
+  }
+  if (requiresDescription(state.categoryId) && !state.description) {
+    alert("Description is missing")
+    return
+  }
 
-  emit('save', incomeTransactionRequest)
+  const incomeTransaction: IncomeTransaction = {
+    accountId: state.accountId,
+    date: toLocalDate(state.date),
+    categoryId: state.categoryId,
+    amount: state.amount.toString(),
+    description: state.description
+  }
+
+  emit('save', incomeTransaction)
 }
 
 </script>
 
 <template>
   <n-card>
-    <n-h2>{{incomeTransaction ? 'Update' : 'Add'}} Income Transaction</n-h2>
+    <n-h2>{{ incomeTransaction ? 'Update' : 'Add' }} Income Transaction</n-h2>
 
     <n-form :model="state">
       <n-flex vertical>
@@ -103,11 +107,7 @@ function save() {
           </n-form-item>
 
           <n-form-item label="Amount" for="amount" path="amount">
-            <FormulaInput
-              v-model:value="state.amount"
-              :disabled="false"
-            />
-            <!--          <n-input-number :precision="2" v-model:value="state.amount" />-->
+            <FormulaInput v-model:value="state.amount" />
           </n-form-item>
 
           <n-form-item label="Description" for="description" path="description">
@@ -118,7 +118,13 @@ function save() {
           </n-form-item>
         </n-flex>
 
-        <n-button class="save-button" type="success" @click="save">{{ incomeTransaction ? 'Update' : 'Save' }}</n-button>
+        <n-button
+          class="save-button"
+          type="success"
+          @click="save"
+        >
+          {{ incomeTransaction ? 'Update' : 'Save' }}
+        </n-button>
       </n-flex>
     </n-form>
   </n-card>

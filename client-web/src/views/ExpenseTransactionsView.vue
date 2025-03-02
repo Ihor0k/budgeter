@@ -2,7 +2,7 @@
 import ExpenseTransactionForm from '@/components/ExpenseTransactionForm.vue'
 import IncomeTransactionForm from '@/components/IncomeTransactionForm.vue'
 import { onMounted, ref } from 'vue'
-import type { ExpenseCategory, IncomeCategory, User } from '@/types/types.ts'
+import type { ExpenseCategory, ExpenseTransaction, IncomeCategory, IncomeTransaction, User } from '@/types/types.ts'
 import api from '@/services/api.ts'
 
 const users = ref<User[]>([])
@@ -21,14 +21,14 @@ onMounted(() => {
     .catch(err => console.error('Error loading income categories.', err.message))
 })
 
-function createExpenseTransaction(expenseTransactionRequest) {
-  api.post<CreateExpenseTransaction>('/transactions/expenses', expenseTransactionRequest)
+function createExpenseTransaction(expenseTransactionRequest: ExpenseTransaction) {
+  api.post<ExpenseTransaction>('/transactions/expenses', expenseTransactionRequest)
     .then(response => console.log('OK', response)) // TODO
     .catch(err => console.error('Error adding expense transaction.', err.response.data ?? err.message))
 }
 
-function createIncomeTransaction(incomeTransactionRequest) {
-  api.post<CreateExpenseTransaction>('/transactions/incomes', incomeTransactionRequest)
+function createIncomeTransaction(incomeTransactionRequest: IncomeTransaction) {
+  api.post<IncomeTransaction>('/transactions/incomes', incomeTransactionRequest)
     .then(response => console.log('OK', response)) // TODO
     .catch(err => console.error('Error adding income transaction.', err.response.data ?? err.message))
 }
