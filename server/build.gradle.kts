@@ -1,12 +1,7 @@
-val exposedVersion: String by project
-val postgresVersion: String by project
-val kotlinLoggingVersion: String by project
-val logbackVersion: String by project
-
 plugins {
-    kotlin("jvm") version "2.1.10"
-    kotlin("plugin.serialization") version "2.1.10"
-    id("io.ktor.plugin") version "3.1.1"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ktor)
+    alias(libs.plugins.kotlin.plugin.serialization)
 }
 
 group = "ua.ihor0k"
@@ -21,27 +16,25 @@ application {
 }
 
 dependencies {
-    implementation("io.ktor:ktor-server-core")
-    implementation("io.ktor:ktor-server-cors")
-    implementation("io.ktor:ktor-server-netty")
-    implementation("io.ktor:ktor-server-config-yaml")
-    implementation("io.ktor:ktor-server-status-pages")
-    implementation("io.ktor:ktor-server-data-conversion")
-    implementation("io.ktor:ktor-server-content-negotiation")
-    implementation("io.ktor:ktor-serialization-kotlinx-json")
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cors)
+    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.config.yaml)
+    implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.data.conversion)
+    implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
-    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.kotlin.datetime)
 
-    implementation("org.postgresql:postgresql:$postgresVersion")
-    implementation("io.github.oshai:kotlin-logging-jvm:$kotlinLoggingVersion")
-    implementation("ch.qos.logback:logback-classic:$logbackVersion")
+    implementation(libs.postgresql)
+    implementation(libs.kotlin.logging)
+    implementation(libs.logback)
 
     testImplementation(kotlin("test"))
-
-//    implementation("com.h2database:h2:2.3.232")
 }
 
 tasks.test {
