@@ -1,12 +1,12 @@
 val exposedVersion: String by project
 val postgresVersion: String by project
-val microutilsVersion: String by project
+val kotlinLoggingVersion: String by project
 val logbackVersion: String by project
 
 plugins {
-    kotlin("jvm") version "2.1.0"
-    kotlin("plugin.serialization") version "2.1.0"
-    id("io.ktor.plugin") version "3.0.2"
+    kotlin("jvm") version "2.1.10"
+    kotlin("plugin.serialization") version "2.1.10"
+    id("io.ktor.plugin") version "3.1.1"
 }
 
 group = "ua.ihor0k"
@@ -36,7 +36,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
 
     implementation("org.postgresql:postgresql:$postgresVersion")
-    implementation("io.github.microutils:kotlin-logging:$microutilsVersion")
+    implementation("io.github.oshai:kotlin-logging-jvm:$kotlinLoggingVersion")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
     testImplementation(kotlin("test"))
