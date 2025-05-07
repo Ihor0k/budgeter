@@ -9,13 +9,8 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.dataconversion.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
+import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.transaction
-import ua.ihor0k.budgeter.db.Account
-import ua.ihor0k.budgeter.db.ExpenseCategory
-import ua.ihor0k.budgeter.db.IncomeCategory
-import ua.ihor0k.budgeter.db.User
-import java.time.YearMonth
 
 fun Application.module() {
     Database.connect(
@@ -83,14 +78,14 @@ fun Application.module() {
     install(ContentNegotiation) {
         json()
     }
-    install(DataConversion) {   // TODO: remove it when switch to kotlinx-datetime YearMonth
-        convert<YearMonth> {
-            decode { values -> YearMonth.parse(values.single()) }
+    install(DataConversion) {
+        convert<LocalDate> {
+            decode { values -> LocalDate.parse(values.single()) }
         }
     }
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            println(cause.cause)
+            println("Error: $cause")
             when (cause) {
                 is BadRequestException -> {
                     call.response.status(HttpStatusCode.BadRequest)

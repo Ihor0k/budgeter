@@ -9,6 +9,20 @@ export interface Account {
   name: string;
 }
 
+export interface GetTransactionsParams {
+  from?: string,
+  to?: string,
+  accountIds?: number[]
+}
+
+export interface Transaction {
+  id: number;
+  accountId: number;
+  date: string;
+  amount: string;
+  type: string;
+}
+
 export interface ExpenseCategory {
   id?: number;
   name: string;

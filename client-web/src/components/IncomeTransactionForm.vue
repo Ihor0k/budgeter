@@ -61,7 +61,7 @@ function save() {
     return
   }
   if (requiresDescription(state.categoryId) && !state.description) {
-    alert("Description is missing")
+    alert('Description is missing')
     return
   }
 

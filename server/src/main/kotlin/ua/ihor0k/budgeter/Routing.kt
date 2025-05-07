@@ -1,6 +1,5 @@
 package ua.ihor0k.budgeter
 
-// TODO: kotlinx-datetime should introduce YearMonth in the next release. https://github.com/Kotlin/kotlinx-datetime/pull/457
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -11,9 +10,9 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.*
 import io.ktor.util.converters.*
 import io.ktor.util.reflect.*
+import kotlinx.datetime.LocalDate
 import ua.ihor0k.budgeter.dto.*
 import ua.ihor0k.budgeter.services.*
-import java.time.YearMonth
 import kotlin.reflect.KProperty
 
 fun Application.configureRouting() {
@@ -91,10 +90,19 @@ fun Application.configureRouting() {
             }
         }
         route("/transactions") {
+            get {
+                val from by call.queryParameterDelegateNullable<LocalDate>()
+                val to by call.queryParameterDelegateNullable<LocalDate>()
+                val accountIds by call.queryParameterDelegateNullable<List<Int>>()
+                val transactions = transactionService.getTransactions(from, to, accountIds)
+                call.respond(HttpStatusCode.OK, transactions)
+            }
             route("/expenses") {
                 get {
-                    val yearMonth by call.queryParameterDelegate<YearMonth>()
-                    val expenseTransactions = transactionService.getExpenseTransactions(yearMonth)
+                    val from by call.queryParameterDelegate<LocalDate>()
+                    val to by call.queryParameterDelegate<LocalDate>()
+                    val accountIds by call.queryParameterDelegate<List<Int>>()
+                    val expenseTransactions = transactionService.getExpenseTransactions(from, to, accountIds)
                     call.respond(HttpStatusCode.OK, expenseTransactions)
                 }
                 post {
@@ -117,8 +125,10 @@ fun Application.configureRouting() {
             }
             route("/incomes") {
                 get {
-                    val yearMonth by call.queryParameterDelegate<YearMonth>()
-                    val incomeTransactions = transactionService.getIncomeTransactions(yearMonth)
+                    val from by call.queryParameterDelegate<LocalDate>()
+                    val to by call.queryParameterDelegate<LocalDate>()
+                    val accountIds by call.queryParameterDelegate<List<Int>>()
+                    val incomeTransactions = transactionService.getIncomeTransactions(from, to, accountIds)
                     call.respond(HttpStatusCode.OK, incomeTransactions)
                 }
                 post {
@@ -140,8 +150,10 @@ fun Application.configureRouting() {
             }
             route("/securities") {
                 get {
-                    val yearMonth by call.queryParameterDelegate<YearMonth>()
-                    val securityTransactions = transactionService.getSecurityTransactions(yearMonth)
+                    val from by call.queryParameterDelegate<LocalDate?>()
+                    val to by call.queryParameterDelegate<LocalDate?>()
+                    val accountIds by call.queryParameterDelegate<List<Int>?>()
+                    val securityTransactions = transactionService.getSecurityTransactions(from, to, accountIds)
                     call.respond(HttpStatusCode.OK, securityTransactions)
                 }
                 post {
@@ -164,13 +176,16 @@ fun Application.configureRouting() {
             }
             route("/transfers") {
                 get {
-                    val yearMonth by call.queryParameterDelegate<YearMonth>()
-                    val transferTransactions = transactionService.getTransferTransactions(yearMonth)
+                    val from by call.queryParameterDelegate<LocalDate>()
+                    val to by call.queryParameterDelegate<LocalDate>()
+                    val accountIds by call.queryParameterDelegate<List<Int>>()
+                    val transferTransactions = transactionService.getTransferTransactions(from, to, accountIds)
                     call.respond(HttpStatusCode.OK, transferTransactions)
                 }
                 post {
                     val transferTransactionRequest = call.receive<TransferTransactionRequest>()
-                    val transferTransactionResponse = transactionService.createTransferTransaction(transferTransactionRequest)
+                    val transferTransactionResponse =
+                        transactionService.createTransferTransaction(transferTransactionRequest)
                     call.respond(HttpStatusCode.OK, transferTransactionResponse)
                 }
                 put("/{id}") {
@@ -223,8 +238,28 @@ private class ParameterDelegate<R>(
     }
 }
 
+private class ParameterDelegateNullable<R>(
+    private val parameters: Parameters,
+    private val conversionService: ConversionService,
+    private val typeInfo: TypeInfo
+) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): R? {
+        val name = property.name
+        val values = parameters.getAll(name) ?: return null
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            conversionService.fromValues(values, typeInfo) as R
+        } catch (cause: Exception) {
+            throw ParameterConversionException(name, typeInfo.type.simpleName ?: typeInfo.type.toString(), cause)
+        }
+    }
+}
+
 private inline fun <reified T> RoutingCall.queryParameterDelegate(): ParameterDelegate<T> =
     ParameterDelegate(this.queryParameters, this.application.conversionService, typeInfo<T>())
+
+private inline fun <reified T> RoutingCall.queryParameterDelegateNullable(): ParameterDelegateNullable<T> =
+    ParameterDelegateNullable(this.queryParameters, this.application.conversionService, typeInfo<T>())
 
 private inline fun <reified T> RoutingCall.pathParameterDelegate(): ParameterDelegate<T> =
     ParameterDelegate(this.pathParameters, this.application.conversionService, typeInfo<T>())

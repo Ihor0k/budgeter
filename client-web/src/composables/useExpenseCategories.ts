@@ -8,7 +8,7 @@ const loaded = ref(false)
 function loadData() {
   if (loaded.value) return
 
-  api.get<ExpenseCategory[]>('/expenseCategories')
+  api.api.get<ExpenseCategory[]>('/expenseCategories')
     .then(response => expenseCategories.value = response.data)
     .catch(err => console.error('Error loading expense categories.', err.message))
     .finally(() => loaded.value = true)

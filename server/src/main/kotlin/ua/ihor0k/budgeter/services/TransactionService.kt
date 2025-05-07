@@ -2,29 +2,46 @@ package ua.ihor0k.budgeter.services
 
 import io.ktor.server.plugins.*
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.toKotlinLocalDate
 import org.jetbrains.exposed.dao.with
-import org.jetbrains.exposed.sql.JoinType
-import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.transactions.transaction
-import ua.ihor0k.budgeter.db.*
+import ua.ihor0k.budgeter.db.Account
+import ua.ihor0k.budgeter.db.ExpenseCategory
 import ua.ihor0k.budgeter.db.ExpenseTransactionDetail
 import ua.ihor0k.budgeter.db.SecurityTransactionDetail
+import ua.ihor0k.budgeter.db.Transaction
+import ua.ihor0k.budgeter.db.Transactions
+import ua.ihor0k.budgeter.db.ExpenseTransactions
+import ua.ihor0k.budgeter.db.ExpenseTransaction
+import ua.ihor0k.budgeter.db.IncomeCategory
+import ua.ihor0k.budgeter.db.IncomeTransactions
+import ua.ihor0k.budgeter.db.IncomeTransaction
+import ua.ihor0k.budgeter.db.Security
+import ua.ihor0k.budgeter.db.SecurityTransaction
+import ua.ihor0k.budgeter.db.SecurityTransactions
+import ua.ihor0k.budgeter.db.TransferTransaction
+import ua.ihor0k.budgeter.db.TransferTransactions
 import ua.ihor0k.budgeter.dto.*
 import java.math.BigDecimal
-import java.time.YearMonth
 
 class TransactionService {
-    fun getExpenseTransactions(yearMonth: YearMonth): List<ExpenseTransactionResponse> = transaction {
+    fun getTransactions(from: LocalDate?, to: LocalDate?, accountIds: List<Int>?): List<TransactionResponse> = transaction {
+        Transactions
+            .select(Transactions.columns)
+            .filterTransactions(from, to, accountIds)
+            .let(Transaction.Companion::wrapRows)
+            .with(
+                Transaction::account
+            )
+            .map { it.toDto() }
+    }
+
+    fun getExpenseTransactions(from: LocalDate?, to: LocalDate?, accountIds: List<Int>?): List<ExpenseTransactionResponse> = transaction {
         ExpenseTransactions
             .innerJoin(Transactions)
             .select(ExpenseTransactions.columns)
-            .where { filterByYearMonthOp(yearMonth) }
+            .filterTransactions(from, to, accountIds)
             .let(ExpenseTransaction.Companion::wrapRows)
             .with(
                 ExpenseTransaction::transaction,
@@ -85,11 +102,11 @@ class TransactionService {
         if (deleted == 0) throw NotFoundException("ExpenseTransaction not found")
     }
 
-    fun getIncomeTransactions(yearMonth: YearMonth): List<IncomeTransactionResponse> = transaction {
+    fun getIncomeTransactions(from: LocalDate?, to: LocalDate?, accountIds: List<Int>?): List<IncomeTransactionResponse> = transaction {
         IncomeTransactions
             .innerJoin(Transactions)
             .select(IncomeTransactions.columns)
-            .where { filterByYearMonthOp(yearMonth) }
+            .filterTransactions(from, to, accountIds)
             .let(IncomeTransaction.Companion::wrapRows)
             .with(
                 IncomeTransaction::transaction,
@@ -126,11 +143,11 @@ class TransactionService {
         if (deleted == 0) throw NotFoundException("IncomeTransaction not found")
     }
 
-    fun getSecurityTransactions(yearMonth: YearMonth): List<SecurityTransactionResponse> = transaction {
+    fun getSecurityTransactions(from: LocalDate?, to: LocalDate?, accountIds: List<Int>?): List<SecurityTransactionResponse> = transaction {
         SecurityTransactions
             .innerJoin(Transactions)
             .select(SecurityTransactions.columns)
-            .where { filterByYearMonthOp(yearMonth) }
+            .filterTransactions(from, to, accountIds)
             .let(SecurityTransaction.Companion::wrapRows)
             .with(
                 SecurityTransaction::transaction,
@@ -190,7 +207,7 @@ class TransactionService {
         if (deleted == 0) throw NotFoundException("SecurityTransaction not found")
     }
 
-    fun getTransferTransactions(yearMonth: YearMonth): List<TransferTransactionResponse> = transaction {
+    fun getTransferTransactions(from: LocalDate?, to: LocalDate?, accountIds: List<Int>?): List<TransferTransactionResponse> = transaction {
         TransferTransactions
             .join(
                 Transactions,
@@ -199,7 +216,7 @@ class TransactionService {
                 otherColumn = Transactions.id
             )
             .select(TransferTransactions.columns)
-            .where { filterByYearMonthOp(yearMonth) }
+            .filterTransactions(from, to, accountIds)
             .let(TransferTransaction.Companion::wrapRows)
             .with(
                 TransferTransaction::inTransaction,
@@ -258,8 +275,11 @@ class TransactionService {
         return category
     }
 
-    private fun filterByYearMonthOp(yearMonth: YearMonth): Op<Boolean> =
-        (Transactions.date greaterEq yearMonth.startOfMonth()) and (Transactions.date lessEq yearMonth.endOfMonth())
+    private fun Query.filterTransactions(from: LocalDate?, to: LocalDate?, accountIds: List<Int>?) = apply {
+        from?.let { andWhere { Transactions.date greaterEq it } }
+        to?.let { andWhere { Transactions.date lessEq it } }
+        accountIds?.let { andWhere { Transactions.accountId inList it } }
+    }
 
     private fun findAccount(id: Int): Account =
         Account.findById(id) ?: throw NotFoundException("Account not found")
@@ -309,14 +329,28 @@ class TransactionService {
         }
     }
 
-    private fun YearMonth.startOfMonth(): LocalDate = this.atDay(1).toKotlinLocalDate()
-    private fun YearMonth.endOfMonth(): LocalDate = this.atEndOfMonth().toKotlinLocalDate()
+    private fun Transaction.toDto(): TransactionResponse =
+        TransactionResponse(
+            this.id.value,
+            this.account.id.value,
+            this.date,
+            this.amount.toPlainString(),
+            this.type.toDto()
+        )
+
+    private fun ua.ihor0k.budgeter.db.TransactionType.toDto(): ua.ihor0k.budgeter.dto.TransactionType =
+        when (this) {
+            ua.ihor0k.budgeter.db.TransactionType.EXPENSE -> ua.ihor0k.budgeter.dto.TransactionType.EXPENSE
+            ua.ihor0k.budgeter.db.TransactionType.INCOME -> ua.ihor0k.budgeter.dto.TransactionType.INCOME
+            ua.ihor0k.budgeter.db.TransactionType.SECURITY -> ua.ihor0k.budgeter.dto.TransactionType.SECURITY
+            ua.ihor0k.budgeter.db.TransactionType.TRANSFER -> ua.ihor0k.budgeter.dto.TransactionType.TRANSFER
+        }
 
     private fun Transaction.init(account: Account, expenseTransactionRequest: ExpenseTransactionRequest) {
         this.account = account
         this.date = expenseTransactionRequest.date
         this.amount = expenseTransactionRequest.amount.toBigDecimalScale2().negate()
-        this.type = TransactionType.EXPENSE
+        this.type = ua.ihor0k.budgeter.db.TransactionType.EXPENSE
     }
 
     private fun ExpenseTransaction.init(transaction: Transaction) {
@@ -340,7 +374,7 @@ class TransactionService {
         this.account = account
         this.date = incomeTransactionRequest.date
         this.amount = incomeTransactionRequest.amount.toBigDecimalScale2()
-        this.type = TransactionType.INCOME
+        this.type = ua.ihor0k.budgeter.db.TransactionType.INCOME
     }
 
     private fun IncomeTransaction.init(
@@ -358,7 +392,7 @@ class TransactionService {
         this.account = account
         this.date = securityTransactionRequest.date
         this.amount = securityTransactionRequest.amount.toBigDecimalScale2().let { if (isBuy) it.negate() else it }
-        this.type = TransactionType.SECURITY
+        this.type = ua.ihor0k.budgeter.db.TransactionType.SECURITY
     }
 
     private fun SecurityTransaction.init(
@@ -391,14 +425,14 @@ class TransactionService {
         this.account = fromAccount
         this.date = transferTransactionRequest.date
         this.amount = transferTransactionRequest.amount.toBigDecimalScale2().negate()
-        this.type = TransactionType.TRANSFER
+        this.type = ua.ihor0k.budgeter.db.TransactionType.TRANSFER
     }
 
     private fun Transaction.initIn(toAccount: Account, transferTransactionRequest: TransferTransactionRequest) {
         this.account = toAccount
         this.date = transferTransactionRequest.date
         this.amount = transferTransactionRequest.amount.toBigDecimalScale2()
-        this.type = TransactionType.TRANSFER
+        this.type = ua.ihor0k.budgeter.db.TransactionType.TRANSFER
     }
 
     private fun TransferTransaction.init(outTransaction: Transaction, inTransaction: Transaction) {

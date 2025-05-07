@@ -3,12 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { Big } from 'big.js'
 import { NInput } from 'naive-ui'
 
-const props = defineProps({
-  disabled: {
-    type: Boolean,
-    default: false
-  }
-})
+const { disabled = false } = defineProps<{ disabled?: boolean }>()
 
 const model = defineModel<number | null>('value', {
   type: [Number, null],
@@ -33,7 +28,7 @@ const sum = computed(() => {
 })
 
 const inputValue = computed(() => {
-  if (props.disabled) return model.value?.toString() ?? ''
+  if (disabled) return model.value?.toString() ?? ''
   if (isEditing.value) return originalString.value
   return sum.value.toString()
 })
@@ -51,7 +46,7 @@ function onBlur() {
   updateModel()
 }
 
-watch(() => props.disabled, disabled => {
+watch(() => disabled, disabled => {
   if (!disabled) {
     updateModel()
   }
@@ -61,43 +56,6 @@ function updateModel() {
   model.value = sum.value.toNumber()
 }
 
-
-/*
-
-const formula = ref<string>(props.value?.toString() ?? '')
-const isEditing = ref<boolean>(false)
-
-const inputValue = computed({
-  get: () => isEditing.value ? formula.value : sum.value,
-  set: (newValue) => {
-    if (isEditing.value) formula.value = newValue
-  }
-})
-
-const sum = computed(() => {
-  try {
-    return formula.value
-      .replace(/,/g, '.')
-      .split(/\s+/)
-      .filter(n => n !== '')
-      .map(n => new Big(n))
-      .reduce((total, num) => total.add(num), new Big(0))
-      .toString()
-  } catch {
-    return formula.value
-  }
-})
-
-watch(sum, (newValue) => emit('update:value', Number(newValue)))
-watch(() => props.value, (newValue) => inputValue.value = newValue?.toString() ?? '')
-
-const onBlur = () => {
-  isEditing.value = false
-}
-
-const onFocus = () => {
-  isEditing.value = true
-}*/
 </script>
 
 <template>

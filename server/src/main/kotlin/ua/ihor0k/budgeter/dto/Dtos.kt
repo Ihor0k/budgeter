@@ -132,3 +132,20 @@ data class TransferTransactionResponse(
     val date: LocalDate,
     val amount: String
 )
+
+@Serializable
+data class TransactionResponse(
+    val id: Int,
+    val accountId: Int,
+    val date: LocalDate,
+    val amount: String,
+    val type: TransactionType
+)
+
+@Serializable
+enum class TransactionType {
+    EXPENSE,
+    INCOME,
+    SECURITY,
+    TRANSFER
+}
