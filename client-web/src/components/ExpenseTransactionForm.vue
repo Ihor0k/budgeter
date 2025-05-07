@@ -2,15 +2,18 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Add, LockClosed, LockOpenOutline, Remove } from '@vicons/ionicons5'
 import { Big } from 'big.js'
-import type { ExpenseCategory, ExpenseTransaction, ExpenseTransactionDetail, User } from '@/types/types.ts'
+import type { ExpenseTransaction, ExpenseTransactionDetail } from '@/types/types.ts'
 import { NButton, NCard, NDatePicker, NFlex, NForm, NFormItem, NH2, NIcon, NInput, NSelect, NTable } from 'naive-ui'
 import FormulaInput from '@/components/FormulaInput.vue'
+import { useUsers } from '@/composables/useUsers.ts'
+import { useExpenseCategories } from '@/composables/useExpenseCategories.ts'
 
 const props = defineProps<{
-  users: User[],
-  categories: ExpenseCategory[],
   expenseTransaction?: ExpenseTransaction
 }>()
+
+const users = useUsers()
+const categories = useExpenseCategories()
 
 const emit = defineEmits(['save'])
 const state = reactive({
@@ -44,19 +47,19 @@ function toLocalDate(timestamp: number): string {
   return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().substring(0, 10)
 }
 
-const accountOptions = computed(() => props.users.flatMap(user => user.accounts.map(account => ({
+const accountOptions = computed(() => users.value.flatMap(user => user.accounts.map(account => ({
   label: user.name + ' - ' + account.name,
   value: account.id
 }))))
 
-const categoryOptions = computed(() => props.categories.map(category => ({
+const categoryOptions = computed(() => categories.value.map(category => ({
   label: category.name,
   value: category.id
 })))
 
 function requiresDescription(categoryId: number | null): boolean {
   if (categoryId === null) return false
-  return props.categories.find((category) => category.id === categoryId)?.requiresDescription ?? false
+  return categories.value.find((category) => category.id === categoryId)?.requiresDescription ?? false
 }
 
 function detailAmountInputDisabled(index: number): boolean {
