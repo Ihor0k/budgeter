@@ -21,6 +21,7 @@ fun Application.configureRouting() {
     val expenseCategoryService = ExpenseCategoryService()
     val transactionService = TransactionService()
     val securityService = SecurityService()
+    val accountBalanceService = AccountBalanceService()
 
     routing {
         route("/users") {
@@ -217,6 +218,10 @@ fun Application.configureRouting() {
                 securityService.updateSecurity(id, securityRequest)
                 call.respond(HttpStatusCode.NoContent)
             }
+        }
+        get("/balance") {
+            val accountBalances = accountBalanceService.getAccountBalances()
+            call.respond(HttpStatusCode.OK, accountBalances)
         }
     }
 }

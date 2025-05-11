@@ -31,7 +31,13 @@ data class ExpenseCategoryResponse(val id: Int, val name: String, val requiresDe
 data class SecurityRequest(val name: String, val originalCurrency: String, val ticker: String?, val isin: String?)
 
 @Serializable
-data class SecurityResponse(val id: Int, val name: String, val originalCurrency: String, val ticker: String?, val isin: String?)
+data class SecurityResponse(
+    val id: Int,
+    val name: String,
+    val originalCurrency: String,
+    val ticker: String?,
+    val isin: String?
+)
 
 @Serializable
 data class ExpenseTransactionRequest(
@@ -149,3 +155,9 @@ enum class TransactionType {
     SECURITY,
     TRANSFER
 }
+
+@Serializable
+data class AccountBalanceResponse(
+    val accountId: Int,
+    val balance: String
+)
