@@ -1,5 +1,5 @@
 import Big from 'big.js'
-// @ts-ignore
+// @ts-expect-error No types available
 import toFormat from 'toformat'
 
 const BigWithFormat = toFormat(Big)
