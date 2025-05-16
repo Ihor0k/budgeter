@@ -13,7 +13,6 @@ import { darkTheme, NConfigProvider, NGlobalStyle, NThemeEditor } from 'naive-ui
           <nav>
             <RouterLink to="/">Welcome</RouterLink>
             <RouterLink to="/expense">Expense</RouterLink>
-            <RouterLink to="/test">Test</RouterLink>
           </nav>
         </div>
       </header>
