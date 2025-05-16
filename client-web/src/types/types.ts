@@ -57,3 +57,8 @@ export interface IncomeTransaction {
   amount: string;
   description: string | null;
 }
+
+export interface AccountBalance {
+  accountId: number;
+  balance: string;
+}

@@ -219,7 +219,7 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.NoContent)
             }
         }
-        get("/balance") {
+        get("/accountBalances") {
             val accountBalances = accountBalanceService.getAccountBalances()
             call.respond(HttpStatusCode.OK, accountBalances)
         }

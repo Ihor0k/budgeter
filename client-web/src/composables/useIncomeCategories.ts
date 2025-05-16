@@ -1,5 +1,5 @@
 import api from '@/services/api.ts'
 import type { IncomeCategory } from '@/types/types.ts'
-import { createOnceLoader } from '@/composables/createOnceLoader.ts'
+import { createCachedLoader } from '@/composables/createCachedLoader.ts'
 
-export const useIncomeCategories = createOnceLoader<IncomeCategory[]>(api.getIncomeCategories, [])
+export const useIncomeCategories = createCachedLoader<IncomeCategory[]>(api.getIncomeCategories, []).useLoader

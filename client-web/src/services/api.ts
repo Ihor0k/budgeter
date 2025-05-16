@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type {
+  AccountBalance,
   ExpenseCategory,
   ExpenseTransaction,
   GetTransactionsParams,
@@ -14,11 +15,13 @@ const api = axios.create({
 })
 
 async function createExpenseTransaction(request: ExpenseTransaction) {
-  api.post<ExpenseTransaction>('/transactions/expenses', request).then(response => response.data)
+  return api.post<ExpenseTransaction>('/transactions/expenses', request)
+    .then(response => response.data)
 }
 
 async function createIncomeTransaction(request: IncomeTransaction) {
-  api.post<ExpenseTransaction>('/transactions/incomes', request).then(response => response.data)
+  return api.post<ExpenseTransaction>('/transactions/incomes', request)
+    .then(response => response.data)
 }
 
 async function getTransactions(params: GetTransactionsParams): Promise<Transaction[]> {
@@ -47,11 +50,16 @@ async function getIncomeCategories(): Promise<IncomeCategory[]> {
   return api.get<IncomeCategory[]>('/incomeCategories').then(response => response.data)
 }
 
+async function getAccountBalances(): Promise<AccountBalance[]> {
+  return api.get<AccountBalance[]>('/accountBalances').then(response => response.data)
+}
+
 export default {
   createExpenseTransaction,
   createIncomeTransaction,
   getTransactions,
   getUsers,
   getExpenseCategories,
-  getIncomeCategories
+  getIncomeCategories,
+  getAccountBalances
 }
